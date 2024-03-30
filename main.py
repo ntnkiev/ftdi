@@ -1,11 +1,12 @@
 from pyftdi.ftdi import Ftdi
 from pyftdi.i2c import I2cController
 
+url = 'ftdi://ftdi:232h:0:1/1'
 # Instantiate an I2C controller
 i2c = I2cController()
 try:
-    # Ініціалізуємо контролер з адаптером FT232H
-    i2c.configure('ftdi://ftdi:232h:1:a/1')
+# Ініціалізуємо контролер з адаптером FT232H
+    i2c.configure(url)
 
     # Скануємо всі можливі адреси на шині I2C (0x03 - 0x77)
     print('Сканування I2C шини...')
@@ -20,4 +21,4 @@ try:
 finally:
     # Закриваємо контролер I2c
     i2c.terminate()
-# ftdi://ftdi:232h:1:a/1
+

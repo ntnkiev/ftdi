@@ -47,7 +47,8 @@ class I2cBusScanner:
         try:
             i2c.set_retry_count(1)
             i2c.force_clock_mode(force)
-            i2c.configure(url)
+            i2c.configure(url, frequency=100000)
+            print(i2c.frequency)
             for addr in range(cls.HIGHEST_I2C_SLAVE_ADDRESS+1):
                 port = i2c.get_port(addr)
                 if smb_mode:

@@ -13,7 +13,7 @@ try:
     for address in range(0x03, 0x78):
         try:
             i2c_port = i2c.get_port(address)
-            i2c_port.exchange([0], readlen=1)
+            i2c_port.write([])
             print(f'Знайдено пристрій на адресі 0x{address:02X}')
         except IOError:
             # Якщо немає відповіді від пристрою, буде викинуто виняток

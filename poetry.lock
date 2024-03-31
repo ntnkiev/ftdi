@@ -31,15 +31,16 @@ cp2110 = ["hidapi"]
 
 [[package]]
 name = "pyusb"
-version = "1.0.0"
+version = "1.2.1"
 description = "Python USB access module"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6.0"
 files = [
-    {file = "PyUSB-1.0.0.tar.gz", hash = "sha256:5b34ffa74ac34f330bff949c94ee00ec4a9d147234db17ee2eed2a67c0275368"},
+    {file = "pyusb-1.2.1-py3-none-any.whl", hash = "sha256:2b4c7cb86dbadf044dfb9d3a4ff69fd217013dbe78a792177a3feb172449ea36"},
+    {file = "pyusb-1.2.1.tar.gz", hash = "sha256:a4cc7404a203144754164b8b40994e2849fde1cfff06b08492f12fff9d9de7b9"},
 ]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "e6f06706cf8261303a7e7df313c6ad7de1ab42fbad2f702dde3252249c7c7b86"
+content-hash = "fe63955001db49c31f52ba9af06f13709c6b4315dc7928c7599f10fad5f21c05"

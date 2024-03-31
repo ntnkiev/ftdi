@@ -1,7 +1,11 @@
-import utime
+import time
+
+import pyftdi.i2c
+from pyftdi.i2c import I2cController
 
 COLUMNS = 16
 ROWS = 2
+LCD_ADDRESS = 0x7c  # LCD
 
 # Instruction set
 CLEARDISPLAY = 0x01
@@ -30,20 +34,21 @@ _4BITMODE = 0x00
 
 
 class LCD:
-    def __init__(self):
+    def __init__(self, url):
 
         self.column = 0
         self.row = 0
-
-        self.address = 62
-
+        self.address = LCD_ADDRESS
         self.command = bytearray(2)
+        self.i2ccontroller = I2cController()
+        self.i2ccontroller.configure(url)
+        self.i2c = self.i2ccontroller.get_port(LCD_ADDRESS)
 
-        utime.sleep_ms(50)
+        time.sleep(.05)
 
         for i in range(3):
             self._command(FUNCTIONSET | _2LINE)
-            utime.sleep_ms(10)
+            time.sleep(.01)
 
         self.on()
         self.clear()
@@ -82,8 +87,11 @@ class LCD:
 
     def write(self, s):
         for i in range(len(s)):
-            utime.sleep_ms(10)
-            self.i2c.writeto(self.address, b'\x40' + s[i])
+            time.sleep(.01)
+            try:
+                self.i2c.write(b'\x40' + s[i].encode('ascii'))
+            except pyftdi.i2c.I2cNackError:
+                print('I2C Nack Error')
             self.column = self.column + 1
             if self.column >= COLUMNS:
                 self.set_cursor(0, self.row + 1)
@@ -91,5 +99,16 @@ class LCD:
     def _command(self, value):
         self.command[0] = 0x80
         self.command[1] = value
-        self.i2c.writeto(self.address, self.command)
-        utime.sleep_ms(1)
+        try:
+            self.i2c.write(self.command)
+        except pyftdi.i2c.I2cNackError:
+            print('I2C Nack Error')
+        time.sleep(.001)
+
+
+if __name__ == '__main__':
+    display = LCD('ftdi://ftdi:232h:1:0xe/1')
+    display.on()
+    display.clear()
+    display.set_cursor(0, 0)
+    display.write('Hello World!')

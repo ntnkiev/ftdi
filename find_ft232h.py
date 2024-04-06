@@ -1,5 +1,4 @@
 from pyftdi.usbtools import UsbTools
-from lcd_i2c import LCD
 
 FT232H_VID = 0x0403
 FT232H_PID = 0x6014
@@ -22,3 +21,7 @@ def find_ft232h():
         raise Exception('FT232H device not found')
     print(url)
     return url
+
+
+if __name__ == '__main__':
+    find_ft232h()

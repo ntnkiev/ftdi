@@ -1,5 +1,6 @@
 import time
 import pyftdi.i2c
+from find_ft232h import find_ft232h
 
 # LCD thru I2C PCF8574 pinout:
 # D0: RS
@@ -10,6 +11,7 @@ import pyftdi.i2c
 # D5: D5
 # D6: D6
 # D7: D7
+
 RS = 0x01
 E = 0x04
 BL = 0x08
@@ -137,7 +139,7 @@ class LCD:
 
 
 if __name__ == '__main__':
-    display = LCD('ftdi://ftdi:232h:1:0x21/1')
+    display = LCD(find_ft232h())
     display.on()
     display.clear()
     display.set_cursor(0, 0)

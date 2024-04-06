@@ -1,36 +1,21 @@
-from time import sleep
-from pyftdi.i2c import I2cController
-from pyftdi.usbtools import UsbTools
+import tkinter as tk
+from tkinter import PhotoImage
+from find_ft232h import find_ft232h
+from lcd_i2c import LCD
 
-# url = 'ftdi://ftdi:232h:1:3/1'  # 'ftdi://ftdi:232h:0:1/1'
-RED = 0xfe
-YELLOW = 0xfd
-GREEN = 0xfb
+display = LCD(find_ft232h())
 
-FT232H_VID = 0x0403
-FT232H_PID = 0x6014
+win = tk.Tk()
+win.title("LCD I2C")
+win.geometry("800x600")
+win.resizable(False, False)
+icon = PhotoImage(file="1602.png")
+win.iconphoto(False, icon)
 
-I2C_ADDRESS = 0x21
+backlight_var = tk.IntVar()
+backlight = tk.Checkbutton(win, text="Backlight", font=("Arial", 12), variable=backlight_var,
+                           command=lambda: display.backlight(backlight_var.get()))
+backlight.select()
+backlight.place(x=10, y=10)
 
-
-# Отримати список всіх доступних FTDI пристроїв
-def find_ftdi_devices():
-    devices_info = UsbTools.find_all([(FT232H_VID, FT232H_PID)])  # VID і PID для FT232H, наприклад
-    if devices_info:
-        device = devices_info[0]
-        local_url = f'ftdi://ftdi:232h:{device[0].bus}:{hex(device[0].address)}/{device[1]}'
-        return local_url
-
-
-url = find_ftdi_devices()
-print(url)
-i2c = I2cController()
-i2c.configure(url)
-i2c_port = i2c.get_port(I2C_ADDRESS)
-while True:
-    i2c_port.write([RED])
-    sleep(.5)
-    i2c_port.write([YELLOW])
-    sleep(.5)
-    i2c_port.write([GREEN])
-    sleep(.5)
+win.mainloop()

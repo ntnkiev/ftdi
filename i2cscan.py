@@ -30,7 +30,7 @@ class I2cBusScanner:
 
     SMB_READ_RANGE = list(range(0x30, 0x38)) + list(range(0x50, 0x60))
 
-    HIGHEST_I2C_SLAVE_ADDRESS = 0x7f
+    HIGHEST_I2C_SLAVE_ADDRESS = 0x7c
 
     @classmethod
     def scan(cls, url: str, smb_mode: bool = True, force: bool = False) \
@@ -91,7 +91,7 @@ def main():
     debug = False
     try:
         argparser = ArgumentParser(description=modules[__name__].__doc__)
-        argparser.add_argument('device', nargs='?', default='ftdi://ftdi:232h:1:7/1',
+        argparser.add_argument('device', nargs='?', default='ftdi://ftdi:232h:1:8/1',
                                help='serial port device name')
         argparser.add_argument('-S', '--no-smb', action='store_true',
                                default=True,

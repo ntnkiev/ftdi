@@ -20,15 +20,10 @@ BL = 0x08
 
 COLUMNS = 16
 ROWS = 2
-LCD_ADDRESS = 0x3e  # LCD
-LCD_8BIT_MODE = True
-# LCD_ADDRESS = 0x27  # LCD
-# LCD_8BIT_MODE = False
+LCD_ADDRESS = 0x27  # LCD
 
 # Instruction set
 CLEARDISPLAY = 0x01
-ROW0 = 0x80
-ROW1 = 0xC0
 
 ENTRYMODESET = 0x04
 ENTRYLEFT = 0x02
@@ -72,7 +67,7 @@ class LCD:
         for i in range(3):
             self._command(FUNCTIONSET | _8BITMODE)
             time.sleep(.01)
-        self._command(FUNCTIONSET | _2LINE | _8BITMODE if LCD_8BIT_MODE else _4BITMODE)
+        self._command(FUNCTIONSET | _2LINE)
         self.init_sequence = False
 
         self.on()
@@ -103,9 +98,9 @@ class LCD:
         column = column % COLUMNS
         row = row % ROWS
         if row == 0:
-            command = column | ROW0
+            command = column | 0x80
         else:
-            command = column | ROW1
+            command = column | 0xC0
         self.row = row
         self.column = column
         self._command(command)
@@ -123,31 +118,18 @@ class LCD:
             self._command(DISPLAYCONTROL | CURSOROFF | BLINKOFF | DISPLAYON)
 
     def write(self, s):
-        lcd_data = bytearray()
-        if LCD_8BIT_MODE:
-            for i in range(len(s)):
-                if s[i] == '\n':
-                    self.row = 1
-                    lcd_data.append(ROW1 | RS)
-                else:
-                    data = ord(s[i])
-                    lcd_data.append(data)
-        else:
-            for i in range(len(s)):
-                if s[i] == '\n':
-                    self.row = 1
-                    lcd_data.append(ROW1 | BL | E)
-                    lcd_data.append(ROW1 | BL)
-                    lcd_data.append((ROW1 << 4 & 0xff) | BL | E)
-                    lcd_data.append((ROW1 << 4 & 0xff) | BL)
-                else:
-                    data = ord(s[i])
-                    wdata = (data & 0xF0) | BL | RS
-                    lcd_data.append(wdata | E)
-                    lcd_data.append(wdata)
-                    wdata = (data << 4) & 0xF0 | BL | RS
-                    lcd_data.append(wdata | E)
-                    lcd_data.append(wdata)
+        lcd_data = []
+        for i in range(len(s)):
+            if s[i] == '\n':
+                self.set_cursor(0, self.row + 1)
+                continue
+            data = ord(s[i])
+            wdata = (data & 0xF0) | BL | RS
+            lcd_data.append(wdata | E)
+            lcd_data.append(wdata)
+            wdata = (data << 4) & 0xF0 | BL | RS
+            lcd_data.append(wdata | E)
+            lcd_data.append(wdata)
         try:
             self.port.write(lcd_data)
         except pyftdi.i2c.I2cNackError:
@@ -158,22 +140,16 @@ class LCD:
 
     def _command(self, value):
         self.command = value
-        if LCD_8BIT_MODE:
-            try:
-                self.port.write([value])
-            except pyftdi.i2c.I2cNackError:
-                print('I2C Nack Error')
-        else:
-            try:
-                wcommand = (self.command & 0xF0) | BL
+        try:
+            wcommand = (self.command & 0xF0) | BL
+            self.port.write([wcommand | E])
+            self.port.write([wcommand])
+            if not self.init_sequence:
+                wcommand = (self.command << 4) & 0xF0 | BL
                 self.port.write([wcommand | E])
                 self.port.write([wcommand])
-                if not self.init_sequence:
-                    wcommand = (self.command << 4) & 0xF0 | BL
-                    self.port.write([wcommand | E])
-                    self.port.write([wcommand])
-            except pyftdi.i2c.I2cNackError:
-                print('I2C Nack Error')
+        except pyftdi.i2c.I2cNackError:
+            print('I2C Nack Error')
         time.sleep(.001)
 
 
@@ -181,9 +157,9 @@ if __name__ == '__main__':
     display = LCD(find_ft232h())
     display.on()
     display.clear()
-    last_time = 0
-    while True:
-        if last_time != time.time() // 1:
-            last_time = time.time() // 1
-            display.set_cursor(0, 0)
-            display.write(f"{datetime.date.today().strftime('%Y-%m-%d')}\n{time.strftime('%H:%M:%S')}")
+    display.set_cursor(0, 0)
+    display.write('Hello, World!')
+    # display.write(datetime.date.today().strftime('%Y-%m-%d'))
+    # display.set_cursor(0, 1)
+    # display.write(time.strftime('%H:%M:%S'))
+    # display.on()

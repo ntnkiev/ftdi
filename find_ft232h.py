@@ -15,7 +15,7 @@ def find_ftdi_devices():
         return local_url
 
 
-def find_ft232h():
+def find_ft232h() -> str:
     url = find_ftdi_devices()
     if not url:
         raise Exception('FT232H device not found')

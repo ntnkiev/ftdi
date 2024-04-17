@@ -1,15 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2018-2022, Emmanuel Blot <emmanuel.blot@free.fr>
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
 """Tiny I2C bus scanner."""
 
-#pylint: disable-msg=broad-except
-#pylint: disable-msg=too-few-public-methods
 
 from argparse import ArgumentParser, FileType
 from logging import Formatter, StreamHandler, getLogger, DEBUG, ERROR
@@ -33,8 +23,7 @@ class I2cBusScanner:
     HIGHEST_I2C_SLAVE_ADDRESS = 0x7c
 
     @classmethod
-    def scan(cls, url: str, smb_mode: bool = True, force: bool = False) \
-            -> None:
+    def scan(cls, url: str, smb_mode: bool = True, force: bool = False) -> int:
         """Scan an I2C bus to detect slave device.
 
            :param url: FTDI URL
@@ -48,43 +37,32 @@ class I2cBusScanner:
             i2c.set_retry_count(1)
             i2c.force_clock_mode(force)
             i2c.configure(url, frequency=100000)
-            print(i2c.frequency)
-            for addr in range(cls.HIGHEST_I2C_SLAVE_ADDRESS+1):
+            addr: int
+            for addr in range(cls.HIGHEST_I2C_SLAVE_ADDRESS + 1):
                 port = i2c.get_port(addr)
                 if smb_mode:
                     try:
                         if addr in cls.SMB_READ_RANGE:
                             port.read(0)
-                            slaves.append('R')
+                            return addr
                         else:
                             port.write([])
-                            slaves.append('W')
+                            return addr
                     except I2cNackError:
-                        slaves.append('.')
+                        pass
                 else:
                     try:
                         port.read(0)
-                        slaves.append('R')
-                        continue
+                        return addr
                     except I2cNackError:
                         pass
                     try:
                         port.write([])
-                        slaves.append('W')
+                        return addr
                     except I2cNackError:
-                        slaves.append('.')
+                        pass
         finally:
             i2c.terminate()
-        columns = 16
-        row = 0
-        print('   %s' % ''.join(' %01X ' % col for col in range(columns)))
-        while True:
-            chunk = slaves[row:row+columns]
-            if not chunk:
-                break
-            print(' %1X:' % (row//columns), '  '.join(chunk))
-            row += columns
-
 
 def main():
     """Entry point."""
@@ -152,6 +130,7 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        print(main())
     except Exception as exc:
         print(str(exc), file=stderr)
+

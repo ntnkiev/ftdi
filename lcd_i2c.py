@@ -2,6 +2,7 @@ import time
 import datetime
 import pyftdi.i2c
 from find_ft232h import find_ft232h
+import i2cscan
 
 # LCD thru I2C PCF8574 pinout:
 # D0: RS
@@ -17,6 +18,7 @@ RS = 0x01
 RW = 0x02
 E = 0x04
 BL = 0x08
+C0 = 0x80
 
 COLUMNS = 16
 ROWS = 2
@@ -72,7 +74,8 @@ class LCD:
         for i in range(3):
             self._command(FUNCTIONSET | _8BITMODE)
             time.sleep(.01)
-        self._command(FUNCTIONSET | _2LINE | _8BITMODE if LCD_8BIT_MODE else _4BITMODE)
+        self._command(FUNCTIONSET | _2LINE | _8BITMODE if LCD_8BIT_MODE else
+                      FUNCTIONSET | _2LINE | _4BITMODE)
         self.init_sequence = False
 
         self.on()
@@ -111,10 +114,13 @@ class LCD:
         self._command(command)
 
     def backlight(self, state):
-        if state:
-            self.port.write([BL])
+        if LCD_8BIT_MODE:
+            pass
         else:
-            self.port.write([0])
+            if state:
+                self.port.write([BL])
+            else:
+                self.port.write([0])
 
     def cursor(self, state):
         if state:
@@ -128,9 +134,11 @@ class LCD:
             for i in range(len(s)):
                 if s[i] == '\n':
                     self.row = 1
-                    lcd_data.append(ROW1 | RS)
+                    lcd_data.append(0x80)
+                    lcd_data.append(ROW1)
                 else:
                     data = ord(s[i])
+                    lcd_data.append(0xc0)
                     lcd_data.append(data)
         else:
             for i in range(len(s)):
@@ -160,7 +168,7 @@ class LCD:
         self.command = value
         if LCD_8BIT_MODE:
             try:
-                self.port.write([value])
+                self.port.write([0x80, value])
             except pyftdi.i2c.I2cNackError:
                 print('I2C Nack Error')
         else:

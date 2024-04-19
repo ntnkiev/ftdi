@@ -2,10 +2,12 @@ import time
 import datetime
 import pyftdi.spi
 from find_ft232h import find_ft232h
+from PIL import Image
 
 D_C = 0x10
 BUSY = 0x20
 RESET = 0x40
+CS = 0x80
 
 SW_RESET = 0x12
 
@@ -55,7 +57,12 @@ lut_partial = [0x0, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 READ_RAM = 0x27
 WRITE_RAM = 0x24
 
+RAM_X = 0x4e
+RAM_Y = 0x4f
+
 BOOSTER_SOFT_START_CONTROL = 0x0C  # 0x8b, 0x9c, 0x96 0x0f Default
+
+NOP = 0x7f
 
 SPI_FREQ = 10E5
 
@@ -64,22 +71,41 @@ spi.configure(find_ft232h())
 eink = spi.get_port(cs=0, freq=SPI_FREQ, mode=0)
 
 gpio = spi.get_gpio()
-gpio.set_direction(D_C | RESET, D_C | RESET)
-gpio.write(RESET | D_C)
+gpio.set_direction(CS | BUSY | D_C | RESET, CS | D_C | RESET)
+gpio.write(CS | RESET | D_C)
 
 
 def write_command(command, data=None):
     gpio.write(RESET)
     eink.write(out=command)
-    gpio.write(RESET | D_C)
     if data:
-        eink.write(out=data)
+        write_data(data)
+    gpio.write(CS | RESET | D_C)
+
+
+def write_data(data):
+    gpio.write(RESET | D_C)
+    eink.write(out=data)
 
 
 def read_data(length) -> bytes:
     gpio.write(RESET | D_C)
     r_data = eink.read(length)
     return r_data
+
+
+def wait_busy():
+    while gpio.read() & BUSY:
+        time.sleep(0.1)
+
+
+def write_screen(image):
+    write_command([RAM_X], [0x00])
+    write_command([RAM_Y], [0x00, 0x00])
+    write_command([WRITE_RAM], image)
+    write_command([NOP])
+    write_command([MASTER_ACTIVATION])
+    wait_busy()
 
 
 # 1. Power On
@@ -93,36 +119,42 @@ write_command([SW_RESET])
 time.sleep(0.01)
 # 3. Send Initialization Code
 write_command([DRIVER_OUTPUT_CONTROL], [0x27, 0x01, 0x01])
-write_command([DATA_ENTRY_MODE_SETTING], [X_INC_Y_INC])
-write_command([SET_RAM_X_ADDRESS], [0x00, 0x18])
-write_command([SET_RAM_Y_ADDRESS], [0xc7, 0x00, 0x00, 0x00])
+write_command([DATA_ENTRY_MODE_SETTING], [X_DEC_Y_INC])
+write_command([0x47], [0x64])
+write_command([SET_RAM_X_ADDRESS], [0x0f, 0x00])
+write_command([SET_RAM_Y_ADDRESS], [0x00, 0x00, 0x27, 0x01])
 write_command([BORDER_WAVEFORM_CONTROL], [0x05])
 write_command([DISPLAY_UPDATE_CONTROL_1], [0x00, 0x80])
+write_command([RAM_X], [0x00])
+write_command([RAM_Y], [0x00, 0x00])
 # 4. Load Waveform LUT
 write_command([TEMPERATURE_SENSOR_CONTROL], [0x80])
-write_command([LUT], lut_partial)
+# write_command([LUT], lut_partial)
 write_command([DISPLAY_UPDATE_CONTROL_2], [0xff])
 write_command([MASTER_ACTIVATION])
 # 5. Write Image and Drive Display Panel
-while gpio.read() & BUSY == BUSY:  # Wait for BUSY pin to be LOW
-    print("BUSY")
-    time.sleep(0.01)
-
+wait_busy()
 # for i in range(5):
 #     write_command([TEMPERATURE_SENSOR_READ])
 #     print(read_data(2))
 #     time.sleep(1)
 
 
-# write_command([READ_RAM])
-# data = read_data(4736)
-# with open("image.bin", "wb") as f:
-#     f.write(data)
-#     print("Image saved to image.bin")
-with open("image.bin", "rb") as f:
-    write_data = f.read()
-write_command([WRITE_RAM], write_data)
-write_command([BOOSTER_SOFT_START_CONTROL], [0x8b, 0x9c, 0x96, 0x0f])
-write_command([MASTER_ACTIVATION])
+image_path = 'me.jpg'
+img = Image.open(image_path)
+img = img.resize((128, 296))
+img = img.convert('1')
+bitmap = img.tobytes()
+
+
+# bitmap = bytearray()
+# for i in range(18):
+#     bitmap.extend([0x00, 0xff] * 8 * 8)
+#     bitmap.extend([0xff, 0x00] * 8 * 8)
+# bitmap.extend([0x00, 0xff] * 8 * 8)
+
+print(len(bitmap))
+write_screen(bitmap)
+
 # 0x10 Deep Sleep Mode
 # 6. Power Off

@@ -2,7 +2,7 @@ import time
 import datetime
 import pyftdi.spi
 from find_ft232h import find_ft232h
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 D_C = 0x10
 BUSY = 0x20
@@ -140,7 +140,7 @@ wait_busy()
 #     time.sleep(1)
 
 
-image_path = 'me.jpg'
+image_path = '1.jpg'
 img = Image.open(image_path)
 img = img.resize((128, 296))
 img = img.convert('1')
@@ -152,6 +152,16 @@ bitmap = img.tobytes()
 #     bitmap.extend([0x00, 0xff] * 8 * 8)
 #     bitmap.extend([0xff, 0x00] * 8 * 8)
 # bitmap.extend([0x00, 0xff] * 8 * 8)
+
+# font_path = 'ttf/static/CascadiaCode-Light.ttf'
+# font_size = 16  # Розмір шрифту
+# font = ImageFont.truetype(font_path, font_size)
+# image = Image.new('1', (128, 296), 1)  # 200x200 пікселів, спочатку білий фон
+# draw = ImageDraw.Draw(image)
+# text = "Hello, World!"
+# draw.text((10, 10), text, font=font, fill=0)  # Почати малювати з (10, 10), чорний текст
+# bitmap = image.convert('1')
+# bitmap = bitmap.tobytes()
 
 print(len(bitmap))
 write_screen(bitmap)

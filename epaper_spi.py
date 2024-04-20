@@ -143,6 +143,8 @@ wait_busy()
 image_path = '1.jpg'
 img = Image.open(image_path)
 img = img.resize((128, 296))
+gamma = 1.8  # Гамма < 1 робить зображення яскравішим, > 1 - темнішим
+img = img.point(lambda p: 255 * (p / 255) ** gamma)
 img = img.convert('1')
 bitmap = img.tobytes()
 

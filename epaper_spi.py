@@ -64,7 +64,7 @@ BOOSTER_SOFT_START_CONTROL = 0x0C  # 0x8b, 0x9c, 0x96 0x0f Default
 
 NOP = 0x7f
 
-SPI_FREQ = 10E5
+SPI_FREQ = 10E6
 
 spi = pyftdi.spi.SpiController(cs_count=1)
 spi.configure(find_ft232h())
@@ -79,18 +79,17 @@ def write_command(command, data=None):
     gpio.write(RESET)
     eink.write(out=command)
     if data:
-        write_data(data)
+        gpio.write(RESET | D_C)
+        eink.write(out=data)
     gpio.write(CS | RESET | D_C)
 
 
-def write_data(data):
+def read_data(command, length) -> bytes:
+    gpio.write(RESET)
+    eink.write(out=command)
     gpio.write(RESET | D_C)
-    eink.write(out=data)
-
-
-def read_data(length) -> bytes:
-    gpio.write(RESET | D_C)
-    r_data = eink.read(length)
+    r_data = eink.exchange(readlen=length, duplex=False)
+    gpio.write(CS | RESET | D_C)
     return r_data
 
 
@@ -134,10 +133,6 @@ write_command([DISPLAY_UPDATE_CONTROL_2], [0xff])
 write_command([MASTER_ACTIVATION])
 # 5. Write Image and Drive Display Panel
 wait_busy()
-# for i in range(5):
-#     write_command([TEMPERATURE_SENSOR_READ])
-#     print(read_data(2))
-#     time.sleep(1)
 
 
 image_path = '1.jpg'
@@ -148,6 +143,13 @@ img = img.point(lambda p: 255 * (p / 255) ** gamma)
 img = img.convert('1')
 bitmap = img.tobytes()
 
+image_path = 'IMG_2372.JPG'
+img = Image.open(image_path)
+img = img.resize((128, 296))
+gamma = 1.8  # Гамма < 1 робить зображення яскравішим, > 1 - темнішим
+img = img.point(lambda p: 255 * (p / 255) ** gamma)
+img = img.convert('1')
+bitmap2 = img.tobytes()
 
 # bitmap = bytearray()
 # for i in range(18):
@@ -165,8 +167,25 @@ bitmap = img.tobytes()
 # bitmap = image.convert('1')
 # bitmap = bitmap.tobytes()
 
-print(len(bitmap))
+shape = len(bitmap)
 write_screen(bitmap)
+
+write_command([RAM_X], [0x00])
+write_command([RAM_Y], [0x00, 0x00])
+data = read_data([READ_RAM], shape)
+print(bitmap)
+print((bytes(data)))
+
+if data == bitmap:
+    print('Data is equal')
+
+# while True:
+#     temperature = read_data([TEMPERATURE_SENSOR_READ], 2)
+#     print(temperature)
+#     temperature = int.from_bytes(temperature, byteorder='big', signed=True)
+#     print(f"Temperature: {temperature/256}°C")
+#     time.sleep(1)
+
 
 # 0x10 Deep Sleep Mode
 # 6. Power Off

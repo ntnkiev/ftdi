@@ -99,11 +99,19 @@ def wait_busy():
 
 
 def write_screen(image):
-    write_command([RAM_X], [0x00])
+    write_command([RAM_X], [0x0f])
     write_command([RAM_Y], [0x00, 0x00])
     write_command([WRITE_RAM], image)
     write_command([NOP])
     write_command([MASTER_ACTIVATION])
+    wait_busy()
+
+
+def screen_refresh():
+    # screen = [0x00] * 4736
+    # write_screen(screen)
+    screen = [0xff] * 4736
+    write_screen(screen)
     wait_busy()
 
 
@@ -134,22 +142,13 @@ write_command([MASTER_ACTIVATION])
 # 5. Write Image and Drive Display Panel
 wait_busy()
 
-
-image_path = '1.jpg'
+image_path = 'masha.jpg'
 img = Image.open(image_path)
 img = img.resize((128, 296))
-gamma = 1.8  # Гамма < 1 робить зображення яскравішим, > 1 - темнішим
+gamma = 1.0  # Гамма < 1 робить зображення яскравішим, > 1 - темнішим
 img = img.point(lambda p: 255 * (p / 255) ** gamma)
 img = img.convert('1')
 bitmap = img.tobytes()
-
-image_path = 'IMG_2372.JPG'
-img = Image.open(image_path)
-img = img.resize((128, 296))
-gamma = 1.8  # Гамма < 1 робить зображення яскравішим, > 1 - темнішим
-img = img.point(lambda p: 255 * (p / 255) ** gamma)
-img = img.convert('1')
-bitmap2 = img.tobytes()
 
 # bitmap = bytearray()
 # for i in range(18):
@@ -167,17 +166,28 @@ bitmap2 = img.tobytes()
 # bitmap = image.convert('1')
 # bitmap = bitmap.tobytes()
 
-shape = len(bitmap)
+
+screen_refresh()
 write_screen(bitmap)
+# time.sleep(3)
+# screen_refresh()
+# write_screen(bitmap2)
+# time.sleep(3)
+# screen_refresh()
+# write_screen(bitmap3)
+# time.sleep(3)
+# screen_refresh()
+# write_screen(bitmap4)
+# time.sleep(3)
 
-write_command([RAM_X], [0x00])
-write_command([RAM_Y], [0x00, 0x00])
-data = read_data([READ_RAM], shape)
-print(bitmap)
-print((bytes(data)))
-
-if data == bitmap:
-    print('Data is equal')
+# write_command([RAM_X], [0x00])
+# write_command([RAM_Y], [0x00, 0x00])
+# data = read_data([READ_RAM], shape)
+# print(bitmap)
+# print((bytes(data)))
+#
+# if data == bitmap:
+#     print('Data is equal')
 
 # while True:
 #     temperature = read_data([TEMPERATURE_SENSOR_READ], 2)
